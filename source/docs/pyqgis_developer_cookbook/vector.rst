@@ -678,7 +678,7 @@ Appearance (Symbology) of Vector Layers
 =======================================
 
 When a vector layer is being rendered, the appearance of the data is given by
-**renderer** and **symbols** associated with the layer.  Symbols are classes
+**renderer** and **symbols** associated with the layer. Symbols are classes
 which take care of drawing of visual representation of features, while
 renderers determine what symbol will be used for a particular feature.
 
@@ -686,7 +686,7 @@ The renderer for a given layer can be obtained as shown below:
 
 ::
 
-  renderer = layer.rendererV2()
+  renderer = layer.renderer()
 
 And with that reference, let us explore it a bit
 
@@ -699,26 +699,29 @@ There are several known renderer types available in the QGIS core library:
 =================  =======================================  ===================================================================
 Type               Class                                    Description
 =================  =======================================  ===================================================================
-singleSymbol       :class:`QgsSingleSymbolRendererV2`       Renders all features with the same symbol
-categorizedSymbol  :class:`QgsCategorizedSymbolRendererV2`  Renders features using a different symbol for each category
-graduatedSymbol    :class:`QgsGraduatedSymbolRendererV2`    Renders features using a different symbol for each range of values
+singleSymbol       :class:`QgsSingleSymbolRenderer`         Renders all features with the same symbol
+categorizedSymbol  :class:`QgsCategorizedSymbolRenderer`    Renders features using a different symbol for each category
+graduatedSymbol    :class:`QgsGraduatedSymbolRenderer`      Renders features using a different symbol for each range of values
 =================  =======================================  ===================================================================
 
 There might be also some custom renderer types, so never make an assumption
-there are just these types. You can query :class:`QgsRendererV2Registry`
-singleton to find out currently available renderers:
+there are just these types. You can query :class:`QgsRendererRegistry`
+to find out currently available renderers:
 
 .. code-block:: python
 
-    print(QgsRendererV2Registry.instance().renderersList())
+    print(QgsApplication.rendererRegistry().renderersList())
     # Print:
-    [u'singleSymbol',
-    u'categorizedSymbol',
-    u'graduatedSymbol',
-    u'RuleRenderer',
-    u'pointDisplacement',
-    u'invertedPolygonRenderer',
-    u'heatmapRenderer']
+    ['nullSymbol',
+    'singleSymbol',
+    'categorizedSymbol',
+    'graduatedSymbol',
+    'RuleRenderer',
+    'pointDisplacement',
+    'pointCluster',
+    'invertedPolygonRenderer',
+    'heatmapRenderer',
+    '25dRenderer']
 
 It is possible to obtain a dump of a renderer contents in text form --- can be
 useful for debugging
@@ -740,20 +743,20 @@ You can change the symbol used by a particular vector layer by calling
 :func:`setSymbol()` passing an instance of the appropriate symbol instance.
 Symbols for *point*, *line* and *polygon* layers can be created by calling
 the :func:`createSimple` function of the corresponding classes
-:class:`QgsMarkerSymbolV2`, :class:`QgsLineSymbolV2` and
-:class:`QgsFillSymbolV2`.
+:class:`QgsMarkerSymbol`, :class:`QgsLineSymbol` and
+:class:`QgsFillSymbol`.
 
 The dictionary passed to :func:`createSimple` sets the style properties of the
 symbol.
 
 For example you can replace the symbol used by a particular **point** layer
-by calling :func:`setSymbol()` passing an instance of a :class:`QgsMarkerSymbolV2`
+by calling :func:`setSymbol()` passing an instance of a :class:`QgsMarkerSymbol`
 as in the following code example:
 
 .. code-block:: python
 
-    symbol = QgsMarkerSymbolV2.createSimple({'name': 'square', 'color': 'red'})
-    layer.rendererV2().setSymbol(symbol)
+    symbol = QgsMarkerSymbol.createSimple({'name': 'square', 'color': 'red'})
+    layer.renderer().setSymbol(symbol)
 
 ``name`` indicates the shape of the marker, and can be any of the following:
 
@@ -771,44 +774,48 @@ as in the following code example:
 * ``filled_arrowhead``
 * ``x``
 
+.. it could be nice to provide a way to generate the list above as it's not complete
 
-To get the full list of properties for the first symbol layer of a simbol
+To get the full list of properties for the first symbol layer of a symbol
 instance you can follow the example code:
 
 .. code-block:: python
 
-    print(layer.rendererV2().symbol().symbolLayers()[0].properties())
+    print(layer.renderer().symbol().symbolLayers()[0].properties())
     # Prints
-    {u'angle': u'0',
-    u'color': u'0,128,0,255',
-    u'horizontal_anchor_point': u'1',
-    u'name': u'circle',
-    u'offset': u'0,0',
-    u'offset_map_unit_scale': u'0,0',
-    u'offset_unit': u'MM',
-    u'outline_color': u'0,0,0,255',
-    u'outline_style': u'solid',
-    u'outline_width': u'0',
-    u'outline_width_map_unit_scale': u'0,0',
-    u'outline_width_unit': u'MM',
-    u'scale_method': u'area',
-    u'size': u'2',
-    u'size_map_unit_scale': u'0,0',
-    u'size_unit': u'MM',
-    u'vertical_anchor_point': u'1'}
+    {'angle': '0',
+    'color': '0,128,0,255',
+    'horizontal_anchor_point': '1',
+    'joinstyle': 'bevel',
+    'name': 'circle',
+    'offset': '0,0',
+    'offset_map_unit_scale': '0,0',
+    'offset_unit': 'MM',
+    'outline_color': '0,0,0,255',
+    'outline_style': 'solid',
+    'outline_width': '0',
+    'outline_width_map_unit_scale': '0,0',
+    'outline_width_unit': 'MM',
+    'scale_method': 'area',
+    'size': '2',
+    'size_map_unit_scale': '0,0',
+    'size_unit': 'MM',
+    'vertical_anchor_point': '1'}
 
 This can be useful if you want to alter some properties:
+
+.. **This section has been tested down to here.**
 
 .. code-block:: python
 
     # You can alter a single property...
-    layer.rendererV2().symbol().symbolLayer(0).setName('square')
+    layer.renderer().symbol().symbolLayer(0).setName('square')
     # ... but not all properties are accessible from methods,
     # you can also replace the symbol completely:
-    props = layer.rendererV2().symbol().symbolLayer(0).properties()
+    props = layer.renderer().symbol().symbolLayer(0).properties()
     props['color'] = 'yellow'
     props['name'] = 'square'
-    layer.rendererV2().setSymbol(QgsMarkerSymbolV2.createSimple(props))
+    layer.renderer().setSymbol(QgsMarkerSymbol.createSimple(props))
 
 
 .. index:: Categorized symbology renderer, Symbology; Categorized symbol renderer
@@ -823,7 +830,7 @@ To get a list of categories
 
 .. code-block:: python
 
-  for cat in rendererV2.categories():
+  for cat in renderer.categories():
       print("%s: %s :: %s" % (cat.value().toString(), cat.label(), str(cat.symbol())))
 
 Where :func:`value` is the value used for discrimination between categories,
@@ -846,7 +853,7 @@ To find out more about ranges used in the renderer
 
 .. code-block:: python
 
-  for ran in rendererV2.ranges():
+  for ran in renderer.ranges():
       print("%f - %f: %s %s" % (
           ran.lowerValue(),
           ran.upperValue(),
@@ -855,7 +862,7 @@ To find out more about ranges used in the renderer
         ))
 
 you can again use :func:`classAttribute` to find out classification attribute
-name, :func:`sourceSymbol` and :func:`sourceColorRamp` methods.  Additionally
+name, :func:`sourceSymbol` and :func:`sourceColorRamp` methods. Additionally
 there is :func:`mode` method which determines how the ranges were created:
 using equal intervals, quantiles or some other method.
 
@@ -876,27 +883,27 @@ arrangement)
   myMax = 50.0
   myLabel = 'Group 1'
   myColour = QtGui.QColor('#ffee00')
-  mySymbol1 = QgsSymbolV2.defaultSymbol(myVectorLayer.geometryType())
+  mySymbol1 = QgsSymbol.defaultSymbol(myVectorLayer.geometryType())
   mySymbol1.setColor(myColour)
   mySymbol1.setAlpha(myOpacity)
-  myRange1 = QgsRendererRangeV2(myMin, myMax, mySymbol1, myLabel)
+  myRange1 = QgsRendererRange(myMin, myMax, mySymbol1, myLabel)
   myRangeList.append(myRange1)
   #now make another symbol and range...
   myMin = 50.1
   myMax = 100
   myLabel = 'Group 2'
   myColour = QtGui.QColor('#00eeff')
-  mySymbol2 = QgsSymbolV2.defaultSymbol(
+  mySymbol2 = QgsSymbol.defaultSymbol(
        myVectorLayer.geometryType())
   mySymbol2.setColor(myColour)
   mySymbol2.setAlpha(myOpacity)
-  myRange2 = QgsRendererRangeV2(myMin, myMax, mySymbol2 myLabel)
+  myRange2 = QgsRendererRange(myMin, myMax, mySymbol2 myLabel)
   myRangeList.append(myRange2)
-  myRenderer = QgsGraduatedSymbolRendererV2('', myRangeList)
-  myRenderer.setMode(QgsGraduatedSymbolRendererV2.EqualInterval)
+  myRenderer = QgsGraduatedSymbolRenderer('', myRangeList)
+  myRenderer.setMode(QgsGraduatedSymbolRenderer.EqualInterval)
   myRenderer.setClassAttribute(myTargetField)
 
-  myVectorLayer.setRendererV2(myRenderer)
+  myVectorLayer.setRenderer(myRenderer)
   QgsMapLayerRegistry.instance().addMapLayer(myVectorLayer)
 
 
@@ -905,15 +912,15 @@ arrangement)
 Working with Symbols
 --------------------
 
-For representation of symbols, there is :class:`QgsSymbolV2` base class with
+For representation of symbols, there is :class:`QgsSymbol` base class with
 three derived classes:
 
-* :class:`QgsMarkerSymbolV2` --- for point features
-* :class:`QgsLineSymbolV2` --- for line features
-* :class:`QgsFillSymbolV2` --- for polygon features
+* :class:`QgsMarkerSymbol` --- for point features
+* :class:`QgsLineSymbol` --- for line features
+* :class:`QgsFillSymbol` --- for polygon features
 
 **Every symbol consists of one or more symbol layers** (classes derived from
-:class:`QgsSymbolLayerV2`). The symbol layers do the actual rendering, the
+:class:`QgsSymbolLayer`). The symbol layers do the actual rendering, the
 symbol class itself serves only as a container for the symbol layers.
 
 Having an instance of a symbol (e.g. from a renderer), it is possible to
@@ -939,7 +946,7 @@ Size and width are in millimeters by default, angles are in degrees.
 Working with Symbol Layers
 ..........................
 
-As said before, symbol layers (subclasses of :class:`QgsSymbolLayerV2`)
+As said before, symbol layers (subclasses of :class:`QgsSymbolLayer`)
 determine the appearance of the features.  There are several basic symbol layer
 classes for general use. It is possible to implement new symbol layer types and
 thus arbitrarily customize how features will be rendered. The :func:`layerType`
@@ -947,14 +954,14 @@ method uniquely identifies the symbol layer class --- the basic and default
 ones are SimpleMarker, SimpleLine and SimpleFill symbol layers types.
 
 You can get a complete list of the types of symbol layers you can create for a
-given symbol layer class like this
+given symbol layer class like this:
 
 .. code-block:: python
 
-  from qgis.core import QgsSymbolLayerV2Registry
-  myRegistry = QgsSymbolLayerV2Registry.instance()
+  from qgis.core import QgsSymbolLayerRegistry
+  myRegistry = QgsSymbolLayerRegistry.instance()
   myMetadata = myRegistry.symbolLayerMetadata("SimpleFill")
-  for item in myRegistry.symbolLayersForType(QgsSymbolV2.Marker):
+  for item in myRegistry.symbolLayersForType(QgsSymbol.Marker):
       print(item)
 
 Output
@@ -967,7 +974,7 @@ Output
   SvgMarker
   VectorField
 
-:class:`QgsSymbolLayerV2Registry` class manages a database of all available
+:class:`QgsSymbolLayerRegistry` class manages a database of all available
 symbol layer types.
 
 To access symbol layer data, use its :func:`properties` method that returns a
@@ -989,10 +996,10 @@ radius
 
 .. code-block:: python
 
-  class FooSymbolLayer(QgsMarkerSymbolLayerV2):
+  class FooSymbolLayer(QgsMarkerSymbolLayer):
 
     def __init__(self, radius=4.0):
-        QgsMarkerSymbolLayerV2.__init__(self)
+        QgsMarkerSymbolLayer.__init__(self)
         self.radius = radius
         self.color = QColor(255,0,0)
 
@@ -1040,9 +1047,9 @@ widget
 
 .. code-block:: python
 
-    class FooSymbolLayerWidget(QgsSymbolLayerV2Widget):
+    class FooSymbolLayerWidget(QgsSymbolLayerWidget):
         def __init__(self, parent=None):
-            QgsSymbolLayerV2Widget.__init__(self, parent)
+            QgsSymbolLayerWidget.__init__(self, parent)
 
             self.layer = None
 
@@ -1090,10 +1097,10 @@ We will have to create metadata for the symbol layer
 
 .. code-block:: python
 
-  class FooSymbolLayerMetadata(QgsSymbolLayerV2AbstractMetadata):
+  class FooSymbolLayerMetadata(QgsSymbolLayerAbstractMetadata):
 
     def __init__(self):
-      QgsSymbolLayerV2AbstractMetadata.__init__(self, "FooMarker", QgsSymbolV2.Marker)
+      QgsSymbolLayerAbstractMetadata.__init__(self, "FooMarker", QgsSymbol.Marker)
 
     def createSymbolLayer(self, props):
       radius = float(props[QString("radius")]) if QString("radius") in props else 4.0
@@ -1102,7 +1109,7 @@ We will have to create metadata for the symbol layer
     def createSymbolLayerWidget(self):
       return FooSymbolLayerWidget()
 
-  QgsSymbolLayerV2Registry.instance().addSymbolLayerType(FooSymbolLayerMetadata())
+  QgsSymbolLayerRegistry.instance().addSymbolLayerType(FooSymbolLayerMetadata())
 
 You should pass layer type (the same as returned by the layer) and symbol type
 (marker/line/fill) to the constructor of parent class. :func:`createSymbolLayer`
@@ -1131,10 +1138,10 @@ symbols and chooses randomly one of them for every feature
 
   import random
 
-  class RandomRenderer(QgsFeatureRendererV2):
+  class RandomRenderer(QgsFeatureRenderer):
     def __init__(self, syms=None):
-      QgsFeatureRendererV2.__init__(self, "RandomRenderer")
-      self.syms = syms if syms else [QgsSymbolV2.defaultSymbol(QGis.Point), QgsSymbolV2.defaultSymbol(QGis.Point)]
+      QgsFeatureRenderer.__init__(self, "RandomRenderer")
+      self.syms = syms if syms else [QgsSymbol.defaultSymbol(QgsWkbTypes.Point), QgsSymbol.defaultSymbol(QgsWkbTypes.Point)]
 
     def symbolForFeature(self, feature):
       return random.choice(self.syms)
@@ -1153,7 +1160,7 @@ symbols and chooses randomly one of them for every feature
     def clone(self):
       return RandomRenderer(self.syms)
 
-The constructor of parent :class:`QgsFeatureRendererV2` class needs renderer
+The constructor of parent :class:`QgsFeatureRenderer` class needs renderer
 name (has to be unique among renderers). :func:`symbolForFeature` method is
 the one that decides what symbol will be used for a particular feature.
 :func:`startRender` and :func:`stopRender` take care of initialization/finalization
@@ -1162,21 +1169,21 @@ names that renderer expects to be present. Finally :func:`clone` function
 should return a copy of the renderer.
 
 Like with symbol layers, it is possible to attach a GUI for configuration of
-the renderer. It has to be derived from :class:`QgsRendererV2Widget`. The
+the renderer. It has to be derived from :class:`QgsRendererWidget`. The
 following sample code creates a button that allows user to set symbol of the
 first symbol
 
 .. code-block:: python
 
-  class RandomRendererWidget(QgsRendererV2Widget):
+  class RandomRendererWidget(QgsRendererWidget):
     def __init__(self, layer, style, renderer):
-      QgsRendererV2Widget.__init__(self, layer, style)
+      QgsRendererWidget.__init__(self, layer, style)
       if renderer is None or renderer.type() != "RandomRenderer":
         self.r = RandomRenderer()
       else:
         self.r = renderer
       # setup UI
-      self.btn1 = QgsColorButtonV2()
+      self.btn1 = QgsColorButton()
       self.btn1.setColor(self.r.syms[0].color())
       self.vbox = QVBoxLayout()
       self.vbox.addWidget(self.btn1)
@@ -1193,7 +1200,7 @@ first symbol
       return self.r
 
 The constructor receives instances of the active layer (:class:`QgsVectorLayer`),
-the global style (:class:`QgsStyleV2`) and current renderer. If there is no
+the global style (:class:`QgsStyle`) and current renderer. If there is no
 renderer or the renderer has different type, it will be replaced with our new
 renderer, otherwise we will use the current renderer (which has already the
 type we need). The widget contents should be updated to show current state of
@@ -1208,16 +1215,16 @@ RandomRenderer example
 
 .. code-block:: python
 
-  class RandomRendererMetadata(QgsRendererV2AbstractMetadata):
+  class RandomRendererMetadata(QgsRendererAbstractMetadata):
     def __init__(self):
-      QgsRendererV2AbstractMetadata.__init__(self, "RandomRenderer", "Random renderer")
+      QgsRendererAbstractMetadata.__init__(self, "RandomRenderer", "Random renderer")
 
     def createRenderer(self, element):
       return RandomRenderer()
     def createRendererWidget(self, layer, style, renderer):
       return RandomRendererWidget(layer, style, renderer)
 
-  QgsRendererV2Registry.instance().addRenderer(RandomRendererMetadata())
+  QgsRendererRegistry.instance().addRenderer(RandomRendererMetadata())
 
 Similarly as with symbol layers, abstract metadata constructor awaits renderer
 name, name visible for users and optionally name of renderer's icon.
@@ -1227,13 +1234,13 @@ method creates the configuration widget. It does not have to be present or can
 return `None` if the renderer does not come with GUI.
 
 To associate an icon with the renderer you can assign it in
-:class:`QgsRendererV2AbstractMetadata` constructor as a third (optional)
+:class:`QgsRendererAbstractMetadata` constructor as a third (optional)
 argument --- the base class constructor in the RandomRendererMetadata :func:`__init__`
-function becomes
+function becomes:
 
 .. code-block:: python
 
-  QgsRendererV2AbstractMetadata.__init__(self,
+  QgsRendererAbstractMetadata.__init__(self,
          "RandomRenderer",
          "Random renderer",
          QIcon(QPixmap("RandomRendererIcon.png", "png")))
@@ -1250,8 +1257,8 @@ Further Topics
 **TODO:**
 
 * creating/modifying symbols
-* working with style (:class:`QgsStyleV2`)
-* working with color ramps (:class:`QgsVectorColorRampV2`)
+* working with style (:class:`QgsStyle`)
+* working with color ramps (:class:`QgsVectorColorRamp`)
 * rule-based renderer (see `this blogpost
   <http://snorf.net/blog/2014/03/04/symbology-of-vector-layers-in-qgis-python-plugins>`_)
 * exploring symbol layer and renderer registries

@@ -193,7 +193,7 @@ Currently supported items are:
     props["width_border"] = "10.0"
     props["joinstyle"] = "miter"
 
-    style = QgsFillSymbolV2.createSimple(props)
+    style = QgsFillSymbol.createSimple(props)
     composerPolygon.setPolygonStyleSymbol(style)
 
 * table
